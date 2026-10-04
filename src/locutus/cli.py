@@ -10,7 +10,7 @@ import tomllib
 import getpass
 from pathlib import Path
 from typing import Any
-
+from datetime import datetime
 
 def default_config_path() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "locutus" / "config.toml"
@@ -144,7 +144,10 @@ def command_list(config: dict[str, Any]) -> int:
         paths = indexed_db_paths(config, name)
 
         if not paths:
-            print(f"{name:20} {'not built':14} {db_dir(config) / (name + '.*.db')}")
+            print(
+                f"{name:20} {'not built':14} "
+                f"{db_dir(config) / (name + '.*.db')}"
+            )
             continue
 
         total_size = sum(path.stat().st_size for path in paths)
@@ -156,7 +159,16 @@ def command_list(config: dict[str, Any]) -> int:
         )
 
         for path in paths:
-            print(f"  {path.stat().st_size:12} bytes  {path}")
+            stat = path.stat()
+            modified = datetime.fromtimestamp(
+                stat.st_mtime
+            ).strftime("%Y-%m-%d %H:%M:%S")
+
+            print(
+                f"  {stat.st_size:12} bytes  "
+                f"{modified}  "
+                f"{path}"
+            )
 
     return 0
 

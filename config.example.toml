@@ -1,0 +1,18 @@
+[global]
+database_dir = "~/.local/share/locutus"
+skip_unavailable = true
+follow_symlinks = false
+
+[database.calibre]
+paths = [
+  "/mnt/DISKS/Media/Calibre",
+  "/mnt/shares/Books",
+]
+ignore = []
+
+[database.media]
+paths = [
+  "/mnt/DISKS/Movies",
+  "/mnt/DISKS/Music",
+]
+ignore = ["*.part", "*.tmp"]

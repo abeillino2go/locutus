@@ -7,6 +7,7 @@ import subprocess
 import sys
 import tempfile
 import tomllib
+import getpass
 from pathlib import Path
 from typing import Any
 
@@ -160,7 +161,7 @@ def command_list(config: dict[str, Any]) -> int:
     return 0
 
 
-def update_one(config: dict[str, Any], name: str) -> int:
+def update_one(config: dict[str, Any], name: str,  verbose: bool = False) -> int:
     databases = config.get("database", {})
     validate_name(name, databases)
 
@@ -174,7 +175,7 @@ def update_one(config: dict[str, Any], name: str) -> int:
 
     existing = [path for path in roots if path.is_dir()]
     missing = [path for path in roots if not path.is_dir()]
-
+    sudo_password = getpass.getpass("[sudo] password: ")
     for path in missing:
         print(
             f"WARNING: unavailable path: {path}",
@@ -235,12 +236,20 @@ def update_one(config: dict[str, Any], name: str) -> int:
                 str(temp),
             ]
 
+            if  verbose:
+                cmd.append("-v")
+
             print(
                 f"Updating {name}.{index:02d}: {root}",
                 file=sys.stderr,
             )
 
-            result = subprocess.run(cmd, check=False)
+            result = subprocess.run(
+                ["sudo", "-S", *cmd],
+                input=sudo_password + "\n",
+                text=True,
+                check=False,
+            )
 
             if result.returncode != 0:
                 print(
@@ -377,6 +386,12 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     update.add_argument(
+        "-v", "--verbose",
+        action="store_true",
+        dest="verbose"
+    )
+
+    update.add_argument(
         "-db",
         dest="db",
     )
@@ -449,13 +464,13 @@ def main() -> None:
                 code = 0
 
                 for name in sorted(databases):
-                    result = update_one(config, name)
+                    result = update_one(config, name, args.verbose)
 
                     if result:
                         code = result
 
             elif args.db:
-                code = update_one(config, args.db)
+                code = update_one(config, args.db, args.verbose)
 
             else:
                 parser.error("update requires -db NAME or --all")

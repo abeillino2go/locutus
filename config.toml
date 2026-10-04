@@ -1,0 +1,15 @@
+[global]
+database_dir = "~/.local/share/locutus"
+skip_unavailable = true
+follow_symlinks = false
+
+[database.calibre]
+paths = ["/mnt/shares/NASSALI/CALIBRE/",]
+ignore = []
+
+[database.media]
+paths = [
+  "/mnt/shares/NASSALI/MEDIENARCHIV/",
+  "/mnt/shares/NASSALI/MEDIENARCHIV2/",
+]
+ignore = ["*.part", "*.tmp"]

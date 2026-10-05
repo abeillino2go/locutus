@@ -11,10 +11,53 @@ import getpass
 from pathlib import Path
 from typing import Any
 from datetime import datetime
+import shlex
+from importlib.resources import files
+from importlib.metadata import version
 
 def default_config_path() -> Path:
     return Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "locutus" / "config.toml"
 
+def ensure_config(path: Path) -> Path:
+    if path.exists():
+        return path
+
+    path.parent.mkdir(parents=True, exist_ok=True)
+
+    template = files("locutus").joinpath(
+        "data",
+        "config-template.toml",
+    )
+
+    path.write_text(
+        template.read_text(encoding="utf-8"),
+        encoding="utf-8",
+    )
+
+    return path
+
+def command_version() -> int:
+    print(version("locutus"))
+    return 0
+    
+def command_config_show(path: Path) -> int:
+    ensure_config(path)
+
+    print(path.read_text(encoding="utf-8"), end="")
+    return 0
+
+def command_config_edit(path: Path) -> int:
+    ensure_config(path)
+
+    editor = (
+        os.environ.get("VISUAL")
+        or os.environ.get("EDITOR")
+        or "nano"
+    )
+
+    command = [*shlex.split(editor), str(path)]
+
+    return subprocess.run(command, check=False).returncode
 
 def load_config(path: Path) -> dict[str, Any]:
     try:
@@ -383,6 +426,11 @@ def build_parser() -> argparse.ArgumentParser:
     )
 
     sub.add_parser(
+        "version",
+        help="show the installed version",
+)
+
+    sub.add_parser(
         "list",
         help="list configured databases",
     )
@@ -390,6 +438,16 @@ def build_parser() -> argparse.ArgumentParser:
     sub.add_parser(
         "check",
         help="check tools and configured roots",
+    )
+
+    sub.add_parser(
+        "config-show",
+        help="show the current configuration",
+    )
+
+    sub.add_parser(
+        "config-edit",
+        help="edit the current configuration",
     )
 
     update = sub.add_parser(
@@ -455,42 +513,52 @@ def main() -> None:
     args = parser.parse_args()
 
     try:
-        config = load_config(args.config)
 
-        if args.action == "list":
-            code = command_list(config)
+        if args.action == "config-show":
+            code = command_config_show(args.config)
 
-        elif args.action == "check":
-            code = command_check(args, config)
+        elif args.action == "config-edit":
+            code = command_config_edit(args.config)
+        elif args.action == "version":
+            code = command_version()
 
-        elif args.action == "find":
-            code = command_find(args, config)
+        else: 
+            config = load_config(args.config)
 
-        elif args.action == "update":
-            databases = config.get("database", {})
+            if args.action == "list":
+                code = command_list(config)
 
-            if args.all:
-                if args.db:
-                    parser.error("Use either -db NAME or --all")
+            elif args.action == "check":
+                code = command_check(args, config)
 
-                code = 0
+            elif args.action == "find":
+                code = command_find(args, config)
 
-                for name in sorted(databases):
-                    result = update_one(config, name, args.verbose)
+            elif args.action == "update":
+                databases = config.get("database", {})
 
-                    if result:
-                        code = result
+                if args.all:
+                    if args.db:
+                        parser.error("Use either -db NAME or --all")
 
-            elif args.db:
-                code = update_one(config, args.db, args.verbose)
+                    code = 0
+
+                    for name in sorted(databases):
+                        result = update_one(config, name, args.verbose)
+
+                        if result:
+                            code = result
+
+                elif args.db:
+                    code = update_one(config, args.db, args.verbose)
+
+                else:
+                    parser.error("update requires -db NAME or --all")
 
             else:
-                parser.error("update requires -db NAME or --all")
+                code = 2
 
-        else:
-            code = 2
-
-        raise SystemExit(code)
+            raise SystemExit(code)
 
     except (
         RuntimeError,

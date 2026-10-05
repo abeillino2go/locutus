@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "locutus-indexer"
+name = "locutus"
 version = "0.1.1"
 description = "Manage named plocate databases"
 readme = "README.md"
@@ -17,3 +17,5 @@ locutus = "locutus.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+[tool.setuptools.package-data]
+locutus = ["data/*.toml"]

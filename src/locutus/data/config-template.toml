@@ -4,6 +4,16 @@ database_dir = "~/.local/share/locutus"
 skip_unavailable = true
 follow_symlinks = false
 
+
+[database.root]
+paths = [ "/"]
+ignore = ["*.cache", "*.tmp"]
+
+[database.home]
+paths = [ "/home"]
+ignore = ["*.cache", "*.tmp"]
+
+
 # Examples for Index-Databases
 #[database.calibre]
 # paths = [
